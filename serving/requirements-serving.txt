@@ -1,0 +1,6 @@
+vllm
+fastapi
+uvicorn
+pydantic
+pyyaml
+prometheus-client
