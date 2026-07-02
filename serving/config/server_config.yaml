@@ -1,0 +1,30 @@
+# vLLM server configuration
+# Loaded by serving/vllm_server.py at startup.
+
+# Path or HF repo id of the model to serve.
+# Point this at a quantized model directory (from quantization/quantize_gptq.py
+# or quantize_awq.py) to serve the optimized version instead of the base model.
+model: meta-llama/Llama-3.2-1B
+
+# Quantization method used by the model above.
+# Must match how the model was actually quantized: "gptq", "awq", or null for the base model.
+quantization: null
+
+# Weight/activation dtype. "auto" lets vLLM pick based on the model and hardware
+# (usually bfloat16 on modern GPUs). Only override if you have a specific reason.
+dtype: auto
+
+# Continuous batching: max number of sequences the engine will process
+# concurrently in a single forward pass. Higher = better GPU utilization
+# and throughput, but more VRAM used per step. This is the main knob
+# load_testing/locustfile.py will be used to tune.
+max_num_seqs: 32
+
+# Fraction of GPU memory vLLM is allowed to reserve for the KV cache and weights.
+# Leave headroom for the OS/other processes — 0.9 is a safe default on a
+# dedicated inference GPU.
+gpu_memory_utilization: 0.9
+
+# Maximum context length (prompt + generation) the engine will accept.
+# Larger values reserve more KV-cache memory per sequence.
+max_model_len: 4096
