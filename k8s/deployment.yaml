@@ -1,0 +1,59 @@
+# Deployment for the vLLM serving container.
+#
+# Requests a GPU per pod (nvidia.com/gpu: 1) — this only works on a cluster
+# with the NVIDIA device plugin installed (standard on GKE/EKS GPU node pools,
+# or via the NVIDIA GPU Operator on bare metal/minikube).
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-inference-server
+  labels:
+    app: llm-inference
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: llm-inference
+  template:
+    metadata:
+      labels:
+        app: llm-inference
+    spec:
+      containers:
+        - name: vllm-server
+          image: llm-inference-optimizer/vllm-server:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              nvidia.com/gpu: 1
+              memory: "8Gi"
+              cpu: "2"
+            limits:
+              nvidia.com/gpu: 1
+              memory: "16Gi"
+              cpu: "4"
+          volumeMounts:
+            - name: server-config
+              mountPath: /app/config
+              readOnly: true
+          # Liveness/readiness hit /health rather than /generate — a slow
+          # inference request shouldn't look like a dead pod to Kubernetes.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+      volumes:
+        - name: server-config
+          configMap:
+            name: llm-server-config
