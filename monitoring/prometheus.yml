@@ -1,0 +1,22 @@
+# Prometheus scrape configuration.
+# Pulls metrics from the vLLM serving container (exposed at /metrics via
+# serving/vllm_server.py) and from the custom GPU exporter.
+
+global:
+  scrape_interval: 5s      # frequent enough to see latency spikes during load tests
+  evaluation_interval: 5s
+
+scrape_configs:
+  # Application-level metrics: request count, latency histogram, tokens generated.
+  # Defined in serving/vllm_server.py using prometheus_client.
+  - job_name: "vllm-server"
+    static_configs:
+      - targets: ["vllm-server:8000"]
+    metrics_path: /metrics
+
+  # GPU-level metrics: utilization, VRAM usage, temperature.
+  # Exposed by monitoring/exporters/gpu_exporter.py.
+  - job_name: "gpu-exporter"
+    static_configs:
+      - targets: ["gpu-exporter:9400"]
+    metrics_path: /metrics
