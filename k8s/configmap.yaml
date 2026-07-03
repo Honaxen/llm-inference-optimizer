@@ -1,0 +1,21 @@
+# ConfigMap holding the vLLM server configuration.
+#
+# Mirrors serving/config/server_config.yaml so the same settings apply
+# whether the server runs locally via docker-compose or in the cluster.
+# Mounted into the pod at /app/config by k8s/deployment.yaml.
+#
+# To change a setting for the cluster deployment, edit the block below —
+# NOT serving/config/server_config.yaml, which only affects local runs.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-server-config
+data:
+  server_config.yaml: |
+    model: meta-llama/Llama-3.2-1B
+    quantization: null
+    dtype: auto
+    max_num_seqs: 32
+    gpu_memory_utilization: 0.9
+    max_model_len: 4096
