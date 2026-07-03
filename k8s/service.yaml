@@ -1,0 +1,22 @@
+# Service exposing the vLLM serving Deployment.
+#
+# ClusterIP by default (internal only) — in a real deployment this usually
+# sits behind an Ingress or an internal load balancer rather than being
+# exposed directly, since raw model endpoints shouldn't be public without
+# auth in front of them.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-inference-service
+  labels:
+    app: llm-inference
+spec:
+  type: ClusterIP
+  selector:
+    app: llm-inference
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
