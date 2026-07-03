@@ -1,0 +1,68 @@
+# HorizontalPodAutoscaler for the inference deployment.
+#
+# CPU-based autoscaling doesn't make sense here — the bottleneck for an
+# LLM server is GPU compute, not CPU. This scales on GPU utilization instead,
+# which requires the Prometheus Adapter to be installed on the cluster so
+# Kubernetes can read gpu_utilization_percent (from monitoring/exporters/gpu_exporter.py)
+# through the custom metrics API.
+#
+# If the Prometheus Adapter isn't set up yet, replace the "Pods" metric below
+# with a plain "Resource" CPU target as a temporary fallback — see the
+# commented block at the end of this file.
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: llm-inference-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-inference-server
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: gpu_utilization_percent
+        target:
+          type: AverageValue
+          averageValue: "75"
+  behavior:
+    # Scale up fast when load spikes, but scale down slowly — GPU pods are
+    # expensive to spin back up (model load time), so avoid flapping.
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+
+---
+# Fallback if the Prometheus Adapter / custom metrics API isn't available yet:
+#
+# apiVersion: autoscaling/v2
+# kind: HorizontalPodAutoscaler
+# metadata:
+#   name: llm-inference-hpa
+# spec:
+#   scaleTargetRef:
+#     apiVersion: apps/v1
+#     kind: Deployment
+#     name: llm-inference-server
+#   minReplicas: 2
+#   maxReplicas: 8
+#   metrics:
+#     - type: Resource
+#       resource:
+#         name: cpu
+#         target:
+#           type: Utilization
+#           averageUtilization: 70
