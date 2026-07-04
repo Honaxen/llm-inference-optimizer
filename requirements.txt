@@ -1,0 +1,28 @@
+# Root requirements — covers every script in the repo end-to-end.
+# For a smaller, deployment-only image, see serving/requirements-serving.txt
+# and monitoring/exporters/requirements-exporter.txt instead.
+
+# --- Quantization ---
+torch
+transformers
+datasets
+auto-gptq
+autoawq
+
+# --- Serving ---
+vllm
+fastapi
+uvicorn
+pydantic
+pyyaml
+prometheus-client
+
+# --- Load testing ---
+locust
+
+# --- Monitoring ---
+pynvml
+
+# --- Testing ---
+pytest
+httpx
