@@ -1,0 +1,68 @@
+# Brings up the full serving + monitoring stack locally.
+#
+# Usage:
+#   docker-compose up --build
+#
+# Then:
+#   Inference API   -> http://localhost:8000/docs
+#   Prometheus      -> http://localhost:9090
+#   Grafana         -> http://localhost:3000  (default login: admin/admin)
+
+version: "3.9"
+
+services:
+  vllm-server:
+    build:
+      context: ./serving
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./serving/config:/app/config:ro
+    # Requires the NVIDIA Container Toolkit on the host.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  gpu-exporter:
+    build:
+      context: ./monitoring/exporters
+    ports:
+      - "9400:9400"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - vllm-server
+      - gpu-exporter
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
